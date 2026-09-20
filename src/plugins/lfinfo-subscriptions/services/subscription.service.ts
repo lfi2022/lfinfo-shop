@@ -40,7 +40,7 @@ export class SubscriptionService {
       for (let index = 0; index < line.quantity; index++) {
         if (await subRepo.findOne({ where: { orderLineId: line.id, subscriptionIndex: index + 1 } })) continue;
         const startedAt = new Date();
-        const subscription = await subRepo.save(subRepo.create({ customerId: order.customer.id, orderId: order.id, orderLineId: line.id, subscriptionIndex: index + 1, planId: plan.id, productVariantId: line.productVariant.id, status: SubscriptionStatus.ACTIVE, startedAt, expiresAt: this.addMonths(startedAt, plan.intervalMonths), cancelledAt: null, reminder30SentAt: null, reminder10SentAt: null, reminder3SentAt: null, mollieSubscriptionId: null }));
+        const subscription = await subRepo.save(subRepo.create({ customerId: order.customer.id, orderId: order.id, orderLineId: line.id, subscriptionIndex: index + 1, planId: plan.id, productVariantId: line.productVariant.id, status: SubscriptionStatus.ACTIVE, startedAt, expiresAt: this.addMonths(startedAt, plan.intervalMonths), cancelledAt: null, reminder30SentAt: null, reminder10SentAt: null, reminder3SentAt: null, mollieSubscriptionId: null, recurringConsentAt: new Date(), recurringConsentVersion: 'checkout-v1' }));
         created.push(subscription);
         await this.eventBus.publish(new SubscriptionStartedEvent(ctx, String(subscription.id)));
       }

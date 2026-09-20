@@ -28,4 +28,6 @@ export class CustomerSubscription extends VendureEntity {
   @Column({ type: 'timestamptz', nullable: true }) reminder10SentAt: Date | null;
   @Column({ type: 'timestamptz', nullable: true }) reminder3SentAt: Date | null;
   @Column({ type: 'varchar', length: 64, nullable: true }) mollieSubscriptionId: string | null;
+  @Column({ type: 'timestamptz', nullable: true }) recurringConsentAt: Date | null;
+  @Column({ type: 'varchar', length: 32, nullable: true }) recurringConsentVersion: string | null;
 }
