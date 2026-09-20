@@ -16,6 +16,9 @@
     "start": "vendure start all"
   },
   "dependencies": {
+    "@mollie/api-client": "^4.6.0",
+    "@pinelab/pinelab-invoice-plugin": "^6.2.0",
+    "@vendure-community/mollie-plugin": "^1.0.1",
     "@vendure/asset-server-plugin": "3.7.3",
     "@vendure/core": "3.7.3",
     "@vendure/dashboard": "3.7.3",

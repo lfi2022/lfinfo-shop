@@ -1,24 +1,16 @@
-{{> header title="Forgotten password reset" }}
+{{> header title="Réinitialisation de votre mot de passe" }}
 
-<mj-section background-color="#fafafa">
-    <mj-column>
-        <mj-text color="#525252">
-            Someone requested a new password for your account.
-        </mj-text>
-
-        <mj-button font-family="Helvetica"
-                   background-color="#f45e43"
-                   color="white"
-                   href="{{ passwordResetUrl }}?token={{ passwordResetToken }}">
-            Reset password
-        </mj-button>
-
-        <mj-text color="#525252">
-        If you didn't make this request then you can safely ignore this email - nothing has been changed on your account.
-        </mj-text>
-
-    </mj-column>
+<mj-section background-color="#ffffff" padding="34px 32px 10px">
+  <mj-column>
+    <mj-text font-size="23px" font-weight="800" color="#14213d" padding="0 0 12px">Réinitialiser votre mot de passe</mj-text>
+    <mj-text padding="0 0 12px">Une demande de nouveau mot de passe a été effectuée pour votre compte LFINFO.</mj-text>
+  </mj-column>
 </mj-section>
-
+<mj-section background-color="#ffffff" padding="8px 32px 32px">
+  <mj-column>
+    <mj-button href="{{ passwordResetUrl }}?token={{ passwordResetToken }}" align="left">Choisir un nouveau mot de passe</mj-button>
+    <mj-text color="#64748b" font-size="12px" padding="12px 0 0">Vous n'êtes pas à l'origine de cette demande ? Ignorez simplement cet e-mail : votre mot de passe actuel reste inchangé.</mj-text>
+  </mj-column>
+</mj-section>
 
 {{> footer }}

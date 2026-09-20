@@ -1,20 +1,16 @@
-{{> header title="Verify Your Email Address" }}
+{{> header title="Confirmez votre adresse e-mail" }}
 
-<mj-section background-color="#fafafa">
-    <mj-column>
-        <mj-text color="#525252">
-            Thank you for creating an account. Click the button below to verify this email address and
-            complete the registration process:
-        </mj-text>
-
-        <mj-button font-family="Helvetica"
-                   background-color="#f45e43"
-                   color="white"
-                   href="{{ verifyEmailAddressUrl }}?token={{ verificationToken }}">
-            Verify Me!
-        </mj-button>
-    </mj-column>
+<mj-section background-color="#ffffff" padding="34px 32px 10px">
+  <mj-column>
+    <mj-text font-size="23px" font-weight="800" color="#14213d" padding="0 0 12px">Bienvenue chez LFINFO</mj-text>
+    <mj-text padding="0 0 12px">Merci d'avoir créé votre compte. Confirmez votre adresse e-mail pour terminer votre inscription et sécuriser votre espace client.</mj-text>
+  </mj-column>
 </mj-section>
-
+<mj-section background-color="#ffffff" padding="8px 32px 32px">
+  <mj-column>
+    <mj-button href="{{ verifyEmailAddressUrl }}?token={{ verificationToken }}" align="left">Confirmer mon adresse e-mail</mj-button>
+    <mj-text color="#64748b" font-size="12px" padding="12px 0 0">Si vous n'avez pas créé de compte LFINFO, vous pouvez ignorer cet e-mail.</mj-text>
+  </mj-column>
+</mj-section>
 
 {{> footer }}

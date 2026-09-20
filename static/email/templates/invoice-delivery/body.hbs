@@ -1,0 +1,73 @@
+{{> header title="Votre facture LFINFO" }}
+
+<mj-section background-color="#ffffff">
+  <mj-column>
+
+    <mj-text
+      font-size="22px"
+      font-weight="bold"
+      color="#111111"
+    >
+      Votre facture est disponible
+    </mj-text>
+
+    <mj-text
+      font-size="15px"
+      line-height="24px"
+      color="#444444"
+    >
+      Bonjour {{customer.firstName}},
+    </mj-text>
+
+    <mj-text
+      font-size="15px"
+      line-height="24px"
+      color="#444444"
+    >
+      Votre commande
+      <strong>#{{order.code}}</strong>
+      a été livrée.
+    </mj-text>
+
+    <mj-text
+      font-size="15px"
+      line-height="24px"
+      color="#444444"
+    >
+      Votre facture LFINFO est maintenant disponible.
+    </mj-text>
+
+    <mj-button
+      href="{{invoiceUrl}}"
+      background-color="#111111"
+      color="#ffffff"
+      font-size="15px"
+      border-radius="6px"
+      padding-top="18px"
+      padding-bottom="18px"
+    >
+      Télécharger ma facture
+    </mj-button>
+
+    <mj-text
+      font-size="13px"
+      line-height="21px"
+      color="#777777"
+    >
+      Ce document concerne la commande
+      #{{order.code}}.
+    </mj-text>
+
+    <mj-text
+      font-size="14px"
+      line-height="22px"
+      color="#555555"
+      padding-top="16px"
+    >
+      Merci pour votre confiance.
+    </mj-text>
+
+  </mj-column>
+</mj-section>
+
+{{> footer }}

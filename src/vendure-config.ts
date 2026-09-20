@@ -5,20 +5,55 @@ import {
     DefaultSearchPlugin,
     VendureConfig,
 } from '@vendure/core';
-import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
 import 'dotenv/config';
 import path from 'path';
+import { LfinfoSeoPlugin } from './plugins/lfinfo-seo/lfinfo-seo.plugin';
+import { MolliePlugin } from '@vendure-community/mollie-plugin';
+import { EmailPlugin, defaultEmailHandlers } from '@vendure/email-plugin';
+import {
+  LfinfoInvoicesPlugin,
+} from './plugins/lfinfo-invoices/lfinfo-invoices.plugin';
+import {
+  LfinfoNumberingPlugin,
+} from './plugins/lfinfo-numbering/lfinfo-numbering.plugin';
 
+import {
+  LfinfoOrderCodeStrategy,
+} from './plugins/lfinfo-numbering/strategies/lfinfo-order-code.strategy';
+import {
+  lfinfoInvoiceLoadDataFn,
+} from './plugins/lfinfo-invoices/config/invoice-load-data';
+import {
+  licenseDeliveryHandler,
+} from './plugins/lfinfo-licenses/email/license-delivery.handler';
+import {
+  invoiceEmailHandler,
+} from './plugins/lfinfo-invoices/email/invoice-email.handler';
+import {
+  LfinfoLicensesPlugin,
+} from './plugins/lfinfo-licenses/lfinfo-licenses.plugin';
+import {
+  licenseRenewalReminderHandler,
+} from './plugins/lfinfo-licenses/email/license-renewal-reminder.handler';
+
+import {
+  InvoicePlugin,
+} from '@pinelab/pinelab-invoice-plugin';
 const IS_DEV = process.env.APP_ENV === 'dev';
 // PORT wins because hosting platforms inject it into the environment at runtime, and that
 // must take precedence over any value baked into the .env file at scaffold time.
 const serverPort = +process.env.PORT || +process.env.VENDURE_SERVER_PORT || 3000;
 
 export const config: VendureConfig = {
-    apiOptions: {
+	orderOptions: {
+  orderCodeStrategy:
+    new LfinfoOrderCodeStrategy(),
+},    
+
+apiOptions: {
         port: serverPort,
         adminApiPath: 'admin-api',
         shopApiPath: 'shop-api',
@@ -41,7 +76,7 @@ export const config: VendureConfig = {
         } : {}),
     },
     authOptions: {
-        tokenMethod: ['bearer', 'cookie'],
+        tokenMethod: ['bearer', 'cookie','api-key'],
         superadminCredentials: {
             identifier: process.env.SUPERADMIN_USERNAME,
             password: process.env.SUPERADMIN_PASSWORD,
@@ -71,33 +106,60 @@ export const config: VendureConfig = {
     // need to be updated. See the "Migrations" section in README.md.
     customFields: {},
     plugins: [
+	LfinfoSeoPlugin,
+	EmailPlugin.init({
+handlers: [
+    ...defaultEmailHandlers,
+    licenseDeliveryHandler,
+    invoiceEmailHandler,
+     licenseRenewalReminderHandler,
+  ],
+  templatePath: path.join(__dirname, '../static/email/templates'),
+
+  globalTemplateVars: {
+    fromAddress: process.env.SMTP_FROM ?? 'LFINFO <shop@lfinfo.be>',
+    verifyEmailAddressUrl: `${process.env.SHOP_URL}/verify-email`,
+    passwordResetUrl: `${process.env.SHOP_URL}/reset-password`,
+    changeEmailAddressUrl: `${process.env.SHOP_URL}/verify-email-change`,
+  },
+
+  transport: {
+    type: 'smtp',
+    host: process.env.SMTP_HOST,
+    port: Number(process.env.SMTP_PORT ?? 465),
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+	tls: {
+    servername: process.env.SMTP_TLS_SERVERNAME ?? 'mail.lfinfo.be',
+  },
+    secure: process.env.SMTP_SECURE === 'true',
+  },
+}),
+	MolliePlugin.init({
+  vendureHost: 'https://adminshop.lfinfo.be',
+}),
         GraphiqlPlugin.init(),
+	LfinfoLicensesPlugin,
+	LfinfoInvoicesPlugin,
+	LfinfoNumberingPlugin,
+InvoicePlugin.init({
+  vendureHost: 'https://adminshop.lfinfo.be',
+
+  loadDataFn: lfinfoInvoiceLoadDataFn,
+}),
         AssetServerPlugin.init({
             route: 'assets',
             assetUploadDir: path.join(__dirname, '../static/assets'),
             // For local dev, the correct value for assetUrlPrefix should
             // be guessed correctly, but for production it will usually need
             // to be set manually to match your production url.
-            assetUrlPrefix: IS_DEV ? undefined : 'https://www.my-shop.com/assets/',
+            assetUrlPrefix: IS_DEV ? undefined : 'https://adminshop.lfinfo.be/assets/',
         }),
         DefaultSchedulerPlugin.init(),
         DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
         DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
-        EmailPlugin.init({
-            devMode: true,
-            outputPath: path.join(__dirname, '../static/email/test-emails'),
-            route: 'mailbox',
-            handlers: defaultEmailHandlers,
-            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
-            globalTemplateVars: {
-                // The following variables will change depending on your storefront implementation.
-                // Here we are assuming a storefront running at http://localhost:8080.
-                fromAddress: '"example" <noreply@example.com>',
-                verifyEmailAddressUrl: 'http://localhost:8080/verify',
-                passwordResetUrl: 'http://localhost:8080/password-reset',
-                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change'
-            },
-        }),
         DashboardPlugin.init({
             route: 'dashboard',
             appDir: IS_DEV

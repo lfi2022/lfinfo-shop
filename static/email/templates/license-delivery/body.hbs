@@ -1,0 +1,204 @@
+{{> header title="Vos licences sont disponibles" }}
+
+<mj-section background-color="#ffffff">
+  <mj-column>
+
+    <mj-text
+      font-size="22px"
+      font-weight="bold"
+      color="#111111"
+      padding-bottom="10px"
+    >
+      Vos licences sont disponibles
+    </mj-text>
+
+    <mj-text
+      font-size="15px"
+      line-height="24px"
+      color="#444444"
+    >
+      Bonjour {{customer.firstName}},
+    </mj-text>
+
+    <mj-text
+      font-size="15px"
+      line-height="24px"
+      color="#444444"
+    >
+      Les licences numériques associées à votre commande
+      <strong>#{{order.code}}</strong>
+      sont maintenant disponibles.
+    </mj-text>
+
+    <mj-text
+      font-size="14px"
+      line-height="22px"
+      color="#666666"
+    >
+      Vous trouverez ci-dessous les informations nécessaires
+      pour télécharger, activer et utiliser vos logiciels.
+    </mj-text>
+
+  </mj-column>
+</mj-section>
+
+{{#each licenses}}
+
+<mj-section
+  background-color="#f5f5f5"
+  padding="18px"
+  border-radius="8px"
+>
+  <mj-column>
+
+    <mj-text
+      font-size="18px"
+      font-weight="bold"
+      color="#111111"
+      padding-bottom="4px"
+    >
+      {{productName}}
+    </mj-text>
+
+    <mj-text
+      font-size="14px"
+      color="#666666"
+      padding-top="0"
+      padding-bottom="12px"
+    >
+      {{variantName}}
+    </mj-text>
+
+    {{#if licenseKey}}
+
+    <mj-text
+      font-size="13px"
+      color="#666666"
+      padding-bottom="4px"
+    >
+      Clé de licence
+    </mj-text>
+
+    <mj-text
+      font-family="monospace"
+      font-size="17px"
+      font-weight="bold"
+      color="#111111"
+      background-color="#ffffff"
+      padding="14px"
+      border-radius="6px"
+    >
+      {{licenseKey}}
+    </mj-text>
+
+    {{/if}}
+
+    {{#if activationUrl}}
+
+    <mj-button
+      href="{{activationUrl}}"
+      background-color="#111111"
+      color="#ffffff"
+      font-size="14px"
+      border-radius="6px"
+      padding-top="12px"
+      padding-bottom="4px"
+    >
+      Activer la licence
+    </mj-button>
+
+    {{/if}}
+
+    {{#if downloadUrl}}
+
+    <mj-button
+      href="{{downloadUrl}}"
+      background-color="#333333"
+      color="#ffffff"
+      font-size="14px"
+      border-radius="6px"
+      padding-top="8px"
+      padding-bottom="4px"
+    >
+      Télécharger le logiciel
+    </mj-button>
+
+    {{/if}}
+
+    {{#if instructions}}
+
+    <mj-text
+      font-size="13px"
+      font-weight="bold"
+      color="#555555"
+      padding-bottom="4px"
+      padding-top="14px"
+    >
+      Instructions
+    </mj-text>
+
+    <mj-text
+      font-size="14px"
+      line-height="22px"
+      color="#444444"
+      background-color="#ffffff"
+      padding="14px"
+      border-radius="6px"
+    >
+      {{instructions}}
+    </mj-text>
+
+    {{/if}}
+
+  </mj-column>
+</mj-section>
+
+<mj-spacer height="14px" />
+
+{{/each}}
+
+<mj-section background-color="#ffffff">
+  <mj-column>
+
+    <mj-text
+      font-size="15px"
+      font-weight="bold"
+      color="#111111"
+      padding-bottom="6px"
+    >
+      Besoin d’aide ?
+    </mj-text>
+
+    <mj-text
+      font-size="14px"
+      line-height="22px"
+      color="#555555"
+    >
+      Si vous rencontrez un problème lors du téléchargement,
+      de l’installation ou de l’activation de votre logiciel,
+      vous pouvez contacter LFINFO.
+    </mj-text>
+
+    <mj-text
+      font-size="14px"
+      line-height="22px"
+      color="#555555"
+    >
+      Vous pouvez également retrouver vos licences directement
+      dans votre espace client, dans le détail de votre commande.
+    </mj-text>
+
+    <mj-text
+      font-size="13px"
+      line-height="20px"
+      color="#777777"
+      padding-top="16px"
+    >
+      Nous vous recommandons de conserver cet e-mail.
+      Il contient vos informations de licence et d’activation.
+    </mj-text>
+
+  </mj-column>
+</mj-section>
+
+{{> footer }}

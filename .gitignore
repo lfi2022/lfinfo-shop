@@ -4,3 +4,26 @@ admin-ui
 static/assets
 static/email/test-emails
 .vendure/
+.env
+node_modules/
+dist/
+admin-ui/
+static/assets/
+static/email/test-emails/
+.vendure/
+
+# Secrets
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Données locales
+invoices/
+uploads-temp/
+
+# Archives et logs
+*.zip
+*.tar
+*.tar.gz
+*.log

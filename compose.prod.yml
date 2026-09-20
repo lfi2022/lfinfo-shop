@@ -1,0 +1,94 @@
+services:
+
+  postgres:
+    image: postgres:17-alpine
+    container_name: lfinfo-vendure-postgres
+    restart: unless-stopped
+
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USERNAME}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+
+    volumes:
+      - vendure_postgres:/var/lib/postgresql/data
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}"
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+    networks:
+      - vendure_internal
+
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: lfinfo-vendure-server
+    restart: unless-stopped
+
+    command:
+      - npm
+      - run
+      - start:server
+
+    env_file:
+      - .env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    ports:
+      - "3000:3000"
+
+    volumes:
+      - vendure_assets:/usr/src/app/static/assets
+
+    networks:
+      - vendure_internal
+
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    container_name: lfinfo-vendure-worker
+    restart: unless-stopped
+
+    command:
+      - npm
+      - run
+      - start:worker
+
+    env_file:
+      - .env
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    volumes:
+      - vendure_assets:/usr/src/app/static/assets
+
+    networks:
+      - vendure_internal
+
+
+volumes:
+  vendure_postgres:
+  vendure_assets:
+
+
+networks:
+  vendure_internal:
+    driver: bridge

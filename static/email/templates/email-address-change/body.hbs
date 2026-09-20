@@ -1,20 +1,16 @@
-{{> header title="Verify Your New Email Address" }}
+{{> header title="Confirmez votre nouvelle adresse e-mail" }}
 
-<mj-section background-color="#fafafa">
-    <mj-column>
-        <mj-text color="#525252">
-            We received a request to change your registered email address to this one.
-            Click the button below to verify this address and complete the process:
-        </mj-text>
-
-        <mj-button font-family="Helvetica"
-                   background-color="#f45e43"
-                   color="white"
-                   href="{{ changeEmailAddressUrl }}?token={{ identifierChangeToken }}">
-            Verify Me!
-        </mj-button>
-    </mj-column>
+<mj-section background-color="#ffffff" padding="34px 32px 10px">
+  <mj-column>
+    <mj-text font-size="23px" font-weight="800" color="#14213d" padding="0 0 12px">Confirmer votre nouvelle adresse</mj-text>
+    <mj-text padding="0 0 12px">Nous avons reçu une demande pour utiliser cette adresse e-mail sur votre compte LFINFO. Confirmez-la pour terminer la modification.</mj-text>
+  </mj-column>
 </mj-section>
-
+<mj-section background-color="#ffffff" padding="8px 32px 32px">
+  <mj-column>
+    <mj-button href="{{ changeEmailAddressUrl }}?token={{ identifierChangeToken }}" align="left">Confirmer cette adresse</mj-button>
+    <mj-text color="#64748b" font-size="12px" padding="12px 0 0">Si vous n'avez pas demandé ce changement, ignorez cet e-mail et vérifiez la sécurité de votre compte.</mj-text>
+  </mj-column>
+</mj-section>
 
 {{> footer }}
