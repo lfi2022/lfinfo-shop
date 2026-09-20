@@ -25,14 +25,18 @@ export class SubscriptionService {
     return repo.save(repo.create({ ...plan, ...input, code: input.code.trim().toUpperCase(), name: input.name.trim(), active: input.active ?? plan?.active ?? true }));
   }
   async createForPaidOrder(ctx: RequestContext, orderId: ID) {
-    const order = await this.orderService.findOne(ctx, orderId, ['lines', 'lines.productVariant', 'customer']);
+    const order = await this.orderService.findOne(ctx, orderId, ['lines', 'lines.productVariant', 'lines.productVariant.product', 'customer']);
     if (!order?.customer) return [];
     const planRepo = this.connection.getRepository(ctx, SubscriptionPlan);
     const subRepo = this.connection.getRepository(ctx, CustomerSubscription);
     const created: CustomerSubscription[] = [];
     for (const line of order.lines) {
-      const plan = await planRepo.findOne({ where: { productVariantId: line.productVariant.id, active: true } });
-      if (!plan) continue;
+      const product = line.productVariant.product as any;
+      if (product?.customFields?.productType !== 'subscription') continue;
+      const months = Number(product?.customFields?.subscriptionMonths ?? 12);
+      if (!Number.isInteger(months) || months < 1) throw new Error(`Période d’abonnement invalide pour la variante ${line.productVariant.id}`);
+      let plan = await planRepo.findOne({ where: { productVariantId: line.productVariant.id, active: true } });
+      if (!plan) plan = await planRepo.save(planRepo.create({ code: `AUTO-SUB-${line.productVariant.id}`, name: product?.translations?.[0]?.name ?? `Abonnement ${line.productVariant.id}`, intervalMonths: months, active: true, productVariantId: line.productVariant.id }));
       for (let index = 0; index < line.quantity; index++) {
         if (await subRepo.findOne({ where: { orderLineId: line.id, subscriptionIndex: index + 1 } })) continue;
         const startedAt = new Date();

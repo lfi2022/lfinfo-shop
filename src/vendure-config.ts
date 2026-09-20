@@ -3,6 +3,7 @@ import {
     DefaultJobQueuePlugin,
     DefaultSchedulerPlugin,
     DefaultSearchPlugin,
+    LanguageCode,
     VendureConfig,
 } from '@vendure/core';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
@@ -108,7 +109,12 @@ apiOptions: {
     },
     // When adding or altering custom field definitions, the database will
     // need to be updated. See the "Migrations" section in README.md.
-    customFields: {},
+    customFields: {
+      Product: [
+        { name: 'productType', type: 'string', defaultValue: 'license', options: [{ value: 'license', label: [{ languageCode: LanguageCode.fr, value: 'Licence / achat unique' }] }, { value: 'subscription', label: [{ languageCode: LanguageCode.fr, value: 'Abonnement récurrent' }] }], label: [{ languageCode: LanguageCode.fr, value: 'Type de vente' }] },
+        { name: 'subscriptionMonths', type: 'int', defaultValue: 12, label: [{ languageCode: LanguageCode.fr, value: 'Période d’abonnement (mois)' }], description: [{ languageCode: LanguageCode.fr, value: 'Utilisé uniquement pour un abonnement récurrent.' }] },
+      ],
+    },
     plugins: [
 	LfinfoSeoPlugin,
 	EmailPlugin.init({

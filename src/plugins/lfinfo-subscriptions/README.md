@@ -1,6 +1,6 @@
 # Abonnements LFINFO
 
-Un plan associe une variante Vendure a une periode (en mois). Cette variante devient alors une offre d'abonnement dans la Shop API. Une variante sans plan reste un achat ponctuel : elle peut etre utilisee pour une licence, sans modifier le module de licences existant.
+Dans le formulaire de produit du Dashboard, choisissez directement le champ **Type de vente** : `Licence / achat unique` ou `Abonnement récurrent`. Pour un abonnement, indiquez aussi **Période d’abonnement (mois)**. Une variante de ce produit devient alors automatiquement une offre d'abonnement; aucune configuration de plan n'est nécessaire.
 
 ## Back-office
 

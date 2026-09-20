@@ -13,7 +13,7 @@ import { MollieRecurringService } from './mollie-recurring.service';
 import { MollieRecurringController } from './mollie-recurring.controller';
 
 @VendurePlugin({
-  imports: [PluginCommonModule], dashboard: './dashboard/index.tsx', entities: [SubscriptionPlan, CustomerSubscription, MollieRecurringAttempt], providers: [SubscriptionService, SubscriptionOrderListener, MollieRecurringService], controllers: [MollieRecurringController],
+  imports: [PluginCommonModule], entities: [SubscriptionPlan, CustomerSubscription, MollieRecurringAttempt], providers: [SubscriptionService, SubscriptionOrderListener, MollieRecurringService], controllers: [MollieRecurringController],
   adminApiExtensions: { schema: adminApiExtensions, resolvers: [SubscriptionAdminResolver, SubscriptionPlanFields, CustomerSubscriptionFields] },
   shopApiExtensions: { schema: shopApiExtensions, resolvers: [SubscriptionShopResolver, SubscriptionOfferFields, MySubscriptionFields] }, compatibility: '^3.0.0',
   configuration: (config: RuntimeVendureConfig) => { if (!config.schedulerOptions) throw new Error('[LfinfoSubscriptions] schedulerOptions absent'); config.schedulerOptions.tasks = [...(config.schedulerOptions.tasks ?? []), subscriptionRenewalTask]; return config; },
