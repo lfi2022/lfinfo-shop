@@ -1,0 +1,8 @@
+{{> header title="Votre abonnement LFINFO arrive à échéance" }}
+<mj-section background-color="#ffffff" padding="30px 25px"><mj-column>
+  <mj-text font-size="18px" font-weight="600">Bonjour {{ customer.firstName }},</mj-text>
+  <mj-text font-size="15px" line-height="24px">Votre abonnement <strong>{{ subscription.planName }}</strong> pour {{ subscription.productName }} arrive à échéance le <strong>{{ subscription.expiresAt }}</strong> (dans environ {{ daysRemaining }} jour(s)).</mj-text>
+  <mj-text font-size="15px" line-height="24px">Renouvelez-le avant cette date afin d’éviter toute interruption de service.</mj-text>
+  <mj-button href="{{ shopUrl }}" background-color="#111111" color="#ffffff">Voir les abonnements</mj-button>
+</mj-column></mj-section>
+{{> footer }}

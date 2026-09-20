@@ -1,0 +1,2 @@
+import { MigrationInterface, QueryRunner } from 'typeorm';
+export class SubscriptionMollieId1789240000002 implements MigrationInterface { public async up(q: QueryRunner): Promise<void> { await q.query(`ALTER TABLE "customer_subscription" ADD "mollieSubscriptionId" character varying(64)`); } public async down(q: QueryRunner): Promise<void> { await q.query(`ALTER TABLE "customer_subscription" DROP COLUMN "mollieSubscriptionId"`); } }

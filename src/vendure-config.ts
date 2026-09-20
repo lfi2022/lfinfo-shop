@@ -38,6 +38,10 @@ import {
 import {
   licenseRenewalReminderHandler,
 } from './plugins/lfinfo-licenses/email/license-renewal-reminder.handler';
+import { LfinfoSubscriptionsPlugin } from './plugins/lfinfo-subscriptions/lfinfo-subscriptions.plugin';
+import { subscriptionReminderHandler } from './plugins/lfinfo-subscriptions/email/subscription-reminder.handler';
+import { subscriptionStartedHandler } from './plugins/lfinfo-subscriptions/email/subscription-started.handler';
+import { mollieRecurringPaymentHandler } from './plugins/lfinfo-subscriptions/mollie-recurring.handler';
 
 import {
   InvoicePlugin,
@@ -100,7 +104,7 @@ apiOptions: {
         password: process.env.DB_PASSWORD,
     },
     paymentOptions: {
-        paymentMethodHandlers: [dummyPaymentHandler],
+        paymentMethodHandlers: [dummyPaymentHandler, mollieRecurringPaymentHandler],
     },
     // When adding or altering custom field definitions, the database will
     // need to be updated. See the "Migrations" section in README.md.
@@ -113,6 +117,8 @@ handlers: [
     licenseDeliveryHandler,
     invoiceEmailHandler,
      licenseRenewalReminderHandler,
+    subscriptionReminderHandler,
+    subscriptionStartedHandler,
   ],
   templatePath: path.join(__dirname, '../static/email/templates'),
 
@@ -142,6 +148,7 @@ handlers: [
 }),
         GraphiqlPlugin.init(),
 	LfinfoLicensesPlugin,
+	LfinfoSubscriptionsPlugin,
 	LfinfoInvoicesPlugin,
 	LfinfoNumberingPlugin,
 InvoicePlugin.init({

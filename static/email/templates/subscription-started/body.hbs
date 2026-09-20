@@ -1,0 +1,7 @@
+{{> header title="Votre abonnement LFINFO est actif" }}
+<mj-section background-color="#ffffff" padding="30px 25px"><mj-column>
+  <mj-text font-size="18px" font-weight="600">Bonjour {{ customer.firstName }},</mj-text>
+  <mj-text font-size="15px" line-height="24px">Votre abonnement <strong>{{ subscription.planName }}</strong> est maintenant actif. Sa période en cours se termine le <strong>{{ subscription.expiresAt }}</strong>.</mj-text>
+  <mj-text font-size="15px" line-height="24px">Merci de votre confiance.</mj-text>
+</mj-column></mj-section>
+{{> footer }}
