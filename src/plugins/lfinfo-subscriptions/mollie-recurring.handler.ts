@@ -5,4 +5,4 @@ export const mollieRecurringPaymentHandler = new PaymentMethodHandler({ code: 'l
   const expected = crypto.createHmac('sha256', process.env.MOLLIE_RECURRING_WEBHOOK_SECRET ?? '').update(`${order.id}:${id}`).digest('hex');
   if (!id || !process.env.MOLLIE_RECURRING_WEBHOOK_SECRET || signature.length !== expected.length || !crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected))) return { amount, state: 'Declined' as const, metadata: { errorMessage: 'Paiement récurrent Mollie non vérifié' } };
   return { amount, state: 'Settled' as const, transactionId: id, metadata: { molliePaymentId: id } };
-} });
+}, settlePayment: async () => ({ success: true }) });

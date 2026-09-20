@@ -1,7 +1,7 @@
 import crypto from 'crypto';
 import { Injectable } from '@nestjs/common';
 import { ActiveOrderService, ID, OrderService, RequestContext, RequestContextService, TransactionalConnection } from '@vendure/core';
-import { createMollieClient } from '@mollie/api-client';
+import { createMollieClient, SequenceType } from '@mollie/api-client';
 import { MollieRecurringAttempt } from './entities/mollie-recurring-attempt.entity';
 import { SubscriptionPlan } from './entities/subscription-plan.entity';
 import { CustomerSubscription } from './entities/customer-subscription.entity';
@@ -17,7 +17,7 @@ export class MollieRecurringService {
     if (!order.lines.every(line => plans.some(plan => String(plan.productVariantId) === String(line.productVariant.id)))) throw new Error('Un panier d’abonnement ne peut contenir que des offres d’abonnement');
     const mollie = createMollieClient({ apiKey: key }); const customer = await mollie.customers.create({ name: `${order.customer.firstName} ${order.customer.lastName}`.trim(), email: order.customer.emailAddress, metadata: { vendureCustomerId: String(order.customer.id) }, idempotencyKey: `lfinfo-customer-${order.customer.id}` });
     const returnUrl = `${process.env.SHOP_URL ?? 'https://lfinfo.be/boutique'}/commande/${order.code}`;
-    const payment = await mollie.payments.create({ amount: { currency: order.currencyCode, value: (order.totalWithTax / 100).toFixed(2) }, description: `LFINFO abonnement - commande ${order.code}`, customerId: customer.id, sequenceType: 'first', redirectUrl: returnUrl, webhookUrl: 'https://adminshop.lfinfo.be/mollie-recurring/webhook', metadata: { vendureOrderId: String(order.id), orderCode: order.code }, idempotencyKey: `lfinfo-first-${order.id}` });
+    const payment = await mollie.payments.create({ amount: { currency: order.currencyCode, value: (order.totalWithTax / 100).toFixed(2) }, description: `LFINFO abonnement - commande ${order.code}`, customerId: customer.id, sequenceType: SequenceType.first, redirectUrl: returnUrl, webhookUrl: 'https://adminshop.lfinfo.be/mollie-recurring/webhook', metadata: { vendureOrderId: String(order.id), orderCode: order.code }, idempotencyKey: `lfinfo-first-${order.id}` });
     await this.connection.getRepository(ctx, MollieRecurringAttempt).save({ orderId: order.id, molliePaymentId: payment.id, mollieCustomerId: customer.id, status: 'OPEN' });
     await this.orders.transitionToState(ctx, order.id, 'ArrangingPayment');
     const checkoutUrl = payment.getCheckoutUrl(); if (!checkoutUrl) throw new Error('Mollie n’a pas retourné d’URL de paiement'); return checkoutUrl;
