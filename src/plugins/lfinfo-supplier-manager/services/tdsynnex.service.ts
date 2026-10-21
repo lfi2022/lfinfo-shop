@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 
-export interface SupplierProduct { sku: string; name: string; manufacturer?: string; manufacturerReference?: string; ean?: string; priceHt?: number; stock?: number; incomingStock?: number; discontinued?: boolean; imageUrl?: string; description?: string; }
+export interface SupplierProduct { sku: string; name: string; manufacturer?: string; manufacturerReference?: string; ean?: string; priceHt?: number; recommendedPrice?: number; stock?: number; incomingStock?: number; discontinued?: boolean; imageUrl?: string; description?: string; }
 export interface SupplierSearch { manufacturer?: string; productClass?: string; productSubClass?: string; reference?: string; status?: string; skip?: number; take?: number; }
 
 /** TD SYNNEX boundary: credentials never leave this server. Response mapping tolerates API field aliases. */
@@ -17,7 +17,7 @@ export class TdSynnexService {
     const token = await this.getToken();
     // Digital Bridge catalogue v2 names and pagination follow the official EU contract.
     const hasReference = !!search.reference?.trim();
-    const body = { tdsynnexPartNumber: hasReference ? [search.reference!.trim()] : null, manufPartNumber: null, upcEan: null, customerPartNumber: null, manufacturer: hasReference ? null : (search.manufacturer?.trim() || null), class: hasReference ? null : (search.productClass?.trim() || null), subclass: hasReference ? null : (search.productSubClass?.trim() || null), productStatusCode: search.status?.trim() || null, onlyInStock: false, includeStock: true, includePrice: true, includePricePerQuantity: true, includeOutlet: false, includeEndUserPrice: false, page: Math.floor((search.skip ?? 0) / Math.min(search.take ?? 25, 100)) + 1, pageSize: Math.min(search.take ?? 25, 100) };
+    const body = { tdsynnexPartNumber: hasReference ? [search.reference!.trim()] : null, manufPartNumber: null, upcEan: null, customerPartNumber: null, manufacturer: hasReference ? null : (search.manufacturer?.trim() || null), class: hasReference ? null : (search.productClass?.trim() || null), subclass: hasReference ? null : (search.productSubClass?.trim() || null), productStatusCode: search.status?.trim() || null, onlyInStock: false, includeStock: true, includePrice: true, includePricePerQuantity: true, includeOutlet: false, includeEndUserPrice: true, page: Math.floor((search.skip ?? 0) / Math.min(search.take ?? 25, 100)) + 1, pageSize: Math.min(search.take ?? 25, 100) };
     const response = await fetch(`${this.euApiUrl}/resellers/v2/products/catalogue`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json', TraceId: crypto.randomUUID() }, body: JSON.stringify(body) });
     if (!response.ok) throw new Error(`TD SYNNEX catalogue: HTTP ${response.status}`);
     const json: any = await response.json();
@@ -34,6 +34,7 @@ export class TdSynnexService {
     this.accessToken = json.access_token; this.tokenExpiresAt = Date.now() + Math.max(30, Number(json.expires_in ?? 300) - 30) * 1000;
     return this.accessToken!;
   }
-  private mapProduct(p: any): SupplierProduct { return { sku: String(p.sku ?? p.productCode ?? p.tdSynnexSku ?? p.id ?? ''), name: p.description ?? p.name ?? p.productDescription ?? 'Produit TD SYNNEX', manufacturer: p.manufacturer ?? p.vendorName, manufacturerReference: p.manufacturerPartNumber ?? p.mpn ?? p.vendorPartNumber, ean: p.ean ?? p.eanCode ?? p.gtin, priceHt: toNumber(p.price ?? p.netPrice ?? p.prices?.net), stock: toNumber(p.stock ?? p.availableStock ?? p.availability?.quantity), incomingStock: toNumber(p.incomingStock ?? p.inboundStock), discontinued: Boolean(p.discontinued ?? p.endOfLife), imageUrl: p.imageUrl ?? p.image, description: p.longDescription ?? p.description }; }
+  private mapProduct(p: any): SupplierProduct { return { sku: String(p.sku ?? p.productCode ?? p.tdSynnexSku ?? p.id ?? ''), name: p.description ?? p.name ?? p.productDescription ?? 'Produit TD SYNNEX', manufacturer: p.manufacturer ?? p.vendorName, manufacturerReference: p.manufacturerPartNumber ?? p.mpn ?? p.vendorPartNumber, ean: p.ean ?? p.eanCode ?? p.gtin, priceHt: priceNumber(p.price ?? p.netPrice ?? p.prices?.net), recommendedPrice: priceNumber(p.endUserPrice ?? p.endUserPrices?.[0] ?? p.prices?.endUserPrice ?? p.recommendedRetailPrice), stock: toNumber(p.stock ?? p.availableStock ?? p.availability?.quantity), incomingStock: toNumber(p.incomingStock ?? p.inboundStock), discontinued: Boolean(p.discontinued ?? p.endOfLife), imageUrl: p.imageUrl ?? p.image, description: p.longDescription ?? p.description }; }
 }
 function toNumber(value: unknown): number | undefined { const n = Number(value); return Number.isFinite(n) ? n : undefined; }
+function priceNumber(value: any): number | undefined { return toNumber(value?.amount ?? value?.price ?? value?.value ?? value); }
