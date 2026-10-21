@@ -3,6 +3,7 @@ import { LanguageCode, ProductService, ProductVariantService, RequestContext, Re
 import { GlobalFlag } from '@vendure/common/lib/generated-types';
 import { SupplierImportRecord } from '../entities/supplier-import-record.entity';
 import { SupplierSyncLog } from '../entities/supplier-sync-log.entity';
+import { SupplierCatalogueCache } from '../entities/supplier-catalogue-cache.entity';
 import { IcecatService } from './icecat.service';
 import { SupplierProduct, TdSynnexService } from './tdsynnex.service';
 
@@ -12,7 +13,18 @@ export class SupplierManagerService implements OnModuleInit {
   private queue!: JobQueue<{ variantId: string; supplierSku: string }>;
   constructor(private connection: TransactionalConnection, private products: ProductService, private variants: ProductVariantService, private queues: JobQueueService, private contexts: RequestContextService, private td: TdSynnexService, private icecat: IcecatService) {}
   async onModuleInit() { this.queue = await this.queues.createQueue({ name: 'lfinfo-supplier-price-stock-sync', process: job => this.syncOne(job.data.variantId, job.data.supplierSku) }); }
-  async search(input: any) { const result = await this.td.catalogue(input); const text = String(input.text ?? '').trim().toLowerCase(); return { ...result, items: result.items.filter(item => (!text || [item.name, item.manufacturer, item.manufacturerReference, item.ean].filter(Boolean).join(' ').toLowerCase().includes(text)) && (input.minRamGb == null || (item.ramGb !== undefined && item.ramGb >= input.minRamGb)) && (input.minSsdGb == null || (item.ssdGb !== undefined && item.ssdGb >= input.minSsdGb)) && (!input.belgianKeyboard || item.belgianKeyboard === true)) }; }
+  async search(input: any) {
+    if (input.supplier && input.supplier !== 'TD_SYNNEX') throw new Error(`Fournisseur non pris en charge : ${input.supplier}`);
+    const result = await this.td.catalogue(input); const cache = this.connection.getRepository(SupplierCatalogueCache);
+    for (const item of result.items) { const found = await cache.findOne({ where: { supplier: 'TD_SYNNEX', supplierSku: item.sku } }); await cache.save(found ? { ...found, payload: item as any, fetchedAt: new Date() } : cache.create({ supplier: 'TD_SYNNEX', supplierSku: item.sku, payload: item as any, fetchedAt: new Date() })); }
+    const local = !!(String(input.text ?? '').trim() || input.minRamGb != null || input.minSsdGb != null || input.keyboardLayout || input.minPurchasePrice != null || input.maxPurchasePrice != null || input.availability);
+    const cached = local ? (await cache.find({ where: { supplier: 'TD_SYNNEX' }, take: 500 })).map(x => x.payload as unknown as SupplierProduct) : [];
+    const all = new Map<string, SupplierProduct>(); [...result.items, ...cached].forEach(item => all.set(item.sku, item));
+    const imported = new Set((await this.connection.getRepository(SupplierImportRecord).find({ select: { supplierSku: true } })).map(r => r.supplierSku));
+    const items = [...all.values()].filter(item => this.matchesLocal(item, input)).map(item => ({ ...item, imported: imported.has(item.sku) }));
+    return { items, totalItems: local ? items.length : result.totalItems, isExhaustive: false, source: local ? 'API_PAGE_PLUS_CACHE_PARTIAL' : 'API_PAGE', notice: local ? 'Filtres locaux appliqués à la page reçue et au cache déjà consulté : résultat non exhaustif.' : 'Page TD SYNNEX courante : résultat non exhaustif tant que toutes les pages ne sont pas analysées.' };
+  }
+  private matchesLocal(item: SupplierProduct, input: any) { const text = String(input.text ?? '').trim().toLowerCase(); const haystack = [item.name, item.manufacturer, item.manufacturerReference, item.ean, item.description].filter(Boolean).join(' ').toLowerCase(); const availability = input.availability; return (!text || haystack.includes(text)) && (input.minRamGb == null || (item.ramGb !== undefined && item.ramGb >= input.minRamGb)) && (input.minSsdGb == null || (item.ssdGb !== undefined && item.ssdGb >= input.minSsdGb)) && (!input.keyboardLayout || item.keyboardLayout === input.keyboardLayout) && (input.minPurchasePrice == null || (item.priceHt !== undefined && item.priceHt >= input.minPurchasePrice)) && (input.maxPurchasePrice == null || (item.priceHt !== undefined && item.priceHt <= input.maxPurchasePrice)) && (!availability || availability === 'ALL' || (availability === 'IN_STOCK' && item.stock !== undefined && item.stock > 0) || (availability === 'INCOMING' && item.incomingStock !== undefined && item.incomingStock > 0) || (availability === 'UNAVAILABLE' && item.stock === 0 && (item.incomingStock === 0 || item.incomingStock === undefined))); }
   diagnostic() { return this.td.diagnostic(); }
   isConfigured() { return this.td.configured; }
   calculateSalePrice(priceHt: number | undefined, rule: MarginRule, recommendedPrice?: number): number { const salePrice = rule.useRecommendedPrice && recommendedPrice != null ? recommendedPrice : (priceHt ?? 0) * (1 + rule.marginPercent / 100) + rule.fixedAmount; return Math.round(Math.max(0, salePrice) * 100); }
@@ -26,6 +38,7 @@ export class SupplierManagerService implements OnModuleInit {
   }
   async queueSync(): Promise<number> { const records = await this.connection.getRepository(SupplierImportRecord).find({ where: { supplier: 'TD_SYNNEX' } }); for (const r of records) if (r.productVariantId) await this.queue.add({ variantId: String(r.productVariantId), supplierSku: r.supplierSku }); return records.length; }
   async logs() { return this.connection.getRepository(SupplierSyncLog).find({ order: { createdAt: 'DESC' }, take: 50 }); }
+  async imported() { return this.connection.getRepository(SupplierImportRecord).find({ where: { supplier: 'TD_SYNNEX' }, order: { updatedAt: 'DESC' }, take: 200 }); }
   private async importOne(ctx: RequestContext, item: SupplierProduct, rule: MarginRule): Promise<boolean> {
     const records = this.connection.getRepository(SupplierImportRecord);
     const existing = await records.findOne({ where: { supplier: 'TD_SYNNEX', supplierSku: item.sku } });
@@ -33,9 +46,9 @@ export class SupplierManagerService implements OnModuleInit {
     const enrichment = await this.icecat.enrich(item.ean, item.manufacturerReference, item.manufacturer);
     const name = enrichment?.name || item.name;
     const product = await this.products.create(ctx, { enabled: false, translations: [{ languageCode: LanguageCode.fr, name, slug: this.slug(`${item.sku}-${name}`), description: enrichment?.description || item.description || '' }] });
-    const salePrice = rule.useRecommendedPrice && item.recommendedPrice !== undefined ? item.recommendedPrice : (item.priceHt === undefined ? undefined : this.calculateSalePrice(item.priceHt, rule, item.recommendedPrice));
+    const salePrice = rule.useRecommendedPrice && item.recommendedPrice !== undefined ? Math.round(item.recommendedPrice * 100) : (item.priceHt === undefined ? undefined : this.calculateSalePrice(item.priceHt, rule, item.recommendedPrice));
     if (salePrice === undefined) throw new Error('Prix TD absent : import annulé, aucun prix fictif n’a été créé.');
-    const [variant] = await this.variants.create(ctx, [{ productId: product.id, sku: `TD-${item.sku}`, enabled: false, trackInventory: item.stock === undefined ? GlobalFlag.FALSE : GlobalFlag.TRUE, ...(item.stock === undefined ? {} : { stockOnHand: item.stock }), prices: [{ currencyCode: ctx.currencyCode, price: Math.round(salePrice * 100) }], translations: [{ languageCode: LanguageCode.fr, name }] }]);
+    const [variant] = await this.variants.create(ctx, [{ productId: product.id, sku: `TD-${item.sku}`, enabled: false, trackInventory: item.stock === undefined ? GlobalFlag.FALSE : GlobalFlag.TRUE, ...(item.stock === undefined ? {} : { stockOnHand: item.stock }), prices: [{ currencyCode: ctx.currencyCode, price: salePrice }], translations: [{ languageCode: LanguageCode.fr, name }] }]);
     await records.save(records.create({ supplier: 'TD_SYNNEX', supplierSku: item.sku, manufacturerReference: item.manufacturerReference ?? null, ean: item.ean ?? null, productVariantId: variant.id, lastPurchasePrice: item.priceHt === undefined ? null : Math.round(item.priceHt * 100), lastStock: item.stock ?? null, marginPercent: Math.round(rule.marginPercent * 100), fixedAmount: Math.round(rule.fixedAmount * 100), lastSyncedAt: new Date(), lastError: null }));
     // Media is deliberately not downloaded until the Icecat contract's permitted image URL is configured.
     await this.log('INFO', 'import', `${item.sku} importé comme brouillon (produit et variante désactivés).`);
