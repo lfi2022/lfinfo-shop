@@ -64,7 +64,11 @@ export class SupplierManagerService implements OnModuleInit {
       try {
         const downloaded = await this.icecat.downloadImage(enrichment.imageUrl);
         if (downloaded) {
-         const result: any = await this.assets.createFromFileStream(downloaded.stream,ctx,downloaded.filename);
+         const result: any = await this.assets.createFromFileStream(
+  downloaded.stream,
+  downloaded.filename,
+  ctx
+);
           if (result?.id) await this.products.update(ctx, { id: product.id, featuredAssetId: result.id });
           else await this.log('ERROR', 'icecat-image', `${item.sku}: création asset refusée.`);
         }
