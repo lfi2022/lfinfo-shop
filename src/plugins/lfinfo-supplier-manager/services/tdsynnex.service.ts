@@ -9,6 +9,7 @@ export class TdSynnexService {
   private accessToken?: string;
   private tokenExpiresAt = 0;
   private readonly apiUrl = process.env.TD_SYNNEX_API_URL || 'https://api.tdsynnex.com';
+  private get euApiUrl() { return this.apiUrl.replace(/\/$/, '').endsWith('/eu') ? this.apiUrl.replace(/\/$/, '') : `${this.apiUrl.replace(/\/$/, '')}/eu`; }
   get configured() { return !!(process.env.TD_SYNNEX_CLIENT_ID && process.env.TD_SYNNEX_CLIENT_SECRET); }
 
   async catalogue(search: SupplierSearch): Promise<{ items: SupplierProduct[]; totalItems: number }> {
@@ -17,7 +18,7 @@ export class TdSynnexService {
     // Digital Bridge catalogue v2 names and pagination follow the official EU contract.
     const hasReference = !!search.reference?.trim();
     const body = { tdsynnexPartNumber: hasReference ? [search.reference!.trim()] : null, manufPartNumber: null, upcEan: null, customerPartNumber: null, manufacturer: hasReference ? null : (search.manufacturer?.trim() || null), class: hasReference ? null : (search.productClass?.trim() || null), subclass: hasReference ? null : (search.productSubClass?.trim() || null), productStatusCode: search.status?.trim() || null, onlyInStock: false, includeStock: true, includePrice: true, includePricePerQuantity: true, includeOutlet: false, includeEndUserPrice: false, page: Math.floor((search.skip ?? 0) / Math.min(search.take ?? 25, 100)) + 1, pageSize: Math.min(search.take ?? 25, 100) };
-    const response = await fetch(`${this.apiUrl}/eu/resellers/v2/products/catalogue`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json', TraceId: crypto.randomUUID() }, body: JSON.stringify(body) });
+    const response = await fetch(`${this.euApiUrl}/resellers/v2/products/catalogue`, { method: 'POST', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json', Accept: 'application/json', TraceId: crypto.randomUUID() }, body: JSON.stringify(body) });
     if (!response.ok) throw new Error(`TD SYNNEX catalogue: HTTP ${response.status}`);
     const json: any = await response.json();
     const rows = json.products ?? json.items ?? json.data?.products ?? json.data ?? [];
@@ -26,7 +27,7 @@ export class TdSynnexService {
   private async getToken(): Promise<string> {
     if (this.accessToken && Date.now() < this.tokenExpiresAt) return this.accessToken;
     const form = new URLSearchParams({ grant_type: 'client_credentials', client_id: process.env.TD_SYNNEX_CLIENT_ID!, client_secret: process.env.TD_SYNNEX_CLIENT_SECRET! });
-    const response = await fetch(`${this.apiUrl}/auth/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' }, body: form });
+    const response = await fetch(`${this.euApiUrl}/auth/token`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded', Accept: 'application/json' }, body: form });
     if (!response.ok) throw new Error(`TD SYNNEX OAuth: HTTP ${response.status}`);
     const json: any = await response.json();
     if (!json.access_token) throw new Error('TD SYNNEX OAuth: access_token absent.');
