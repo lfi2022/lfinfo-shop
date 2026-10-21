@@ -8,9 +8,9 @@ export class SupplierImportRecord extends VendureEntity {
   constructor(input?: DeepPartial<SupplierImportRecord>) { super(input); }
   @Column({ length: 64 }) supplier: string;
   @Column({ length: 255 }) supplierSku: string;
-  @Column({ nullable: true, length: 255 }) manufacturerReference: string | null;
-  @Column({ nullable: true, length: 64 }) ean: string | null;
-  @Column({ nullable: true }) productVariantId: ID | null;
+  @Column({ type: 'varchar', nullable: true, length: 255 }) manufacturerReference: string | null;
+  @Column({ type: 'varchar', nullable: true, length: 64 }) ean: string | null;
+  @Column({ type: 'int', nullable: true }) productVariantId: ID | null;
   @ManyToOne(() => ProductVariant, { nullable: true, onDelete: 'SET NULL' }) productVariant: ProductVariant | null;
   @Column({ type: 'integer', default: 0 }) lastPurchasePrice: number;
   @Column({ type: 'integer', default: 0 }) lastStock: number;
