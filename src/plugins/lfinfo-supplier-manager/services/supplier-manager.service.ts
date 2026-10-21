@@ -29,7 +29,7 @@ export class SupplierManagerService implements OnModuleInit {
     const records = this.connection.getRepository(SupplierImportRecord);
     const existing = await records.findOne({ where: { supplier: 'TD_SYNNEX', supplierSku: item.sku } });
     if (existing?.productVariantId) return false;
-    const enrichment = await this.icecat.enrich(item.ean, item.manufacturerReference);
+    const enrichment = await this.icecat.enrich(item.ean, item.manufacturerReference, item.manufacturer);
     const name = enrichment?.name || item.name;
     const product = await this.products.create(ctx, { enabled: false, translations: [{ languageCode: LanguageCode.fr, name, slug: this.slug(`${item.sku}-${name}`), description: enrichment?.description || item.description || '' }] });
     const [variant] = await this.variants.create(ctx, [{ productId: product.id, sku: `TD-${item.sku}`, enabled: false, trackInventory: GlobalFlag.TRUE, stockOnHand: Math.max(0, item.stock ?? 0), prices: [{ currencyCode: ctx.currencyCode, price: this.calculateSalePrice(item.priceHt, rule) }], translations: [{ languageCode: LanguageCode.fr, name }] }]);
