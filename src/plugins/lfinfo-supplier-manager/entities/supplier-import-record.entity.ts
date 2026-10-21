@@ -12,8 +12,8 @@ export class SupplierImportRecord extends VendureEntity {
   @Column({ type: 'varchar', nullable: true, length: 64 }) ean: string | null;
   @Column({ type: 'int', nullable: true }) productVariantId: ID | null;
   @ManyToOne(() => ProductVariant, { nullable: true, onDelete: 'SET NULL' }) productVariant: ProductVariant | null;
-  @Column({ type: 'integer', default: 0 }) lastPurchasePrice: number;
-  @Column({ type: 'integer', default: 0 }) lastStock: number;
+  @Column({ type: 'integer', nullable: true }) lastPurchasePrice: number | null;
+  @Column({ type: 'integer', nullable: true }) lastStock: number | null;
   @Column({ type: 'integer', default: 0 }) marginPercent: number;
   @Column({ type: 'integer', default: 0 }) fixedAmount: number;
   @Column({ type: 'timestamptz', nullable: true }) lastSyncedAt: Date | null;

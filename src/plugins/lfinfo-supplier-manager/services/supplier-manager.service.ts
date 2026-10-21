@@ -12,7 +12,8 @@ export class SupplierManagerService implements OnModuleInit {
   private queue!: JobQueue<{ variantId: string; supplierSku: string }>;
   constructor(private connection: TransactionalConnection, private products: ProductService, private variants: ProductVariantService, private queues: JobQueueService, private contexts: RequestContextService, private td: TdSynnexService, private icecat: IcecatService) {}
   async onModuleInit() { this.queue = await this.queues.createQueue({ name: 'lfinfo-supplier-price-stock-sync', process: job => this.syncOne(job.data.variantId, job.data.supplierSku) }); }
-  async search(input: any) { return this.td.catalogue(input); }
+  async search(input: any) { const result = await this.td.catalogue(input); const text = String(input.text ?? '').trim().toLowerCase(); return { ...result, items: result.items.filter(item => (!text || [item.name, item.manufacturer, item.manufacturerReference, item.ean].filter(Boolean).join(' ').toLowerCase().includes(text)) && (input.minRamGb == null || (item.ramGb !== undefined && item.ramGb >= input.minRamGb)) && (input.minSsdGb == null || (item.ssdGb !== undefined && item.ssdGb >= input.minSsdGb)) && (!input.belgianKeyboard || item.belgianKeyboard === true)) }; }
+  diagnostic() { return this.td.diagnostic(); }
   isConfigured() { return this.td.configured; }
   calculateSalePrice(priceHt: number | undefined, rule: MarginRule, recommendedPrice?: number): number { const salePrice = rule.useRecommendedPrice && recommendedPrice != null ? recommendedPrice : (priceHt ?? 0) * (1 + rule.marginPercent / 100) + rule.fixedAmount; return Math.round(Math.max(0, salePrice) * 100); }
   async import(ctx: RequestContext, products: SupplierProduct[], rule: MarginRule): Promise<{ imported: number; skipped: number; errors: string[] }> {
@@ -32,8 +33,10 @@ export class SupplierManagerService implements OnModuleInit {
     const enrichment = await this.icecat.enrich(item.ean, item.manufacturerReference, item.manufacturer);
     const name = enrichment?.name || item.name;
     const product = await this.products.create(ctx, { enabled: false, translations: [{ languageCode: LanguageCode.fr, name, slug: this.slug(`${item.sku}-${name}`), description: enrichment?.description || item.description || '' }] });
-    const [variant] = await this.variants.create(ctx, [{ productId: product.id, sku: `TD-${item.sku}`, enabled: false, trackInventory: GlobalFlag.TRUE, stockOnHand: Math.max(0, item.stock ?? 0), prices: [{ currencyCode: ctx.currencyCode, price: this.calculateSalePrice(item.priceHt, rule, item.recommendedPrice) }], translations: [{ languageCode: LanguageCode.fr, name }] }]);
-    await records.save(records.create({ supplier: 'TD_SYNNEX', supplierSku: item.sku, manufacturerReference: item.manufacturerReference ?? null, ean: item.ean ?? null, productVariantId: variant.id, lastPurchasePrice: Math.round((item.priceHt ?? 0) * 100), lastStock: item.stock ?? 0, marginPercent: Math.round(rule.marginPercent * 100), fixedAmount: Math.round(rule.fixedAmount * 100), lastSyncedAt: new Date(), lastError: null }));
+    const salePrice = rule.useRecommendedPrice && item.recommendedPrice !== undefined ? item.recommendedPrice : (item.priceHt === undefined ? undefined : this.calculateSalePrice(item.priceHt, rule, item.recommendedPrice));
+    if (salePrice === undefined) throw new Error('Prix TD absent : import annulé, aucun prix fictif n’a été créé.');
+    const [variant] = await this.variants.create(ctx, [{ productId: product.id, sku: `TD-${item.sku}`, enabled: false, trackInventory: item.stock === undefined ? GlobalFlag.FALSE : GlobalFlag.TRUE, ...(item.stock === undefined ? {} : { stockOnHand: item.stock }), prices: [{ currencyCode: ctx.currencyCode, price: Math.round(salePrice * 100) }], translations: [{ languageCode: LanguageCode.fr, name }] }]);
+    await records.save(records.create({ supplier: 'TD_SYNNEX', supplierSku: item.sku, manufacturerReference: item.manufacturerReference ?? null, ean: item.ean ?? null, productVariantId: variant.id, lastPurchasePrice: item.priceHt === undefined ? null : Math.round(item.priceHt * 100), lastStock: item.stock ?? null, marginPercent: Math.round(rule.marginPercent * 100), fixedAmount: Math.round(rule.fixedAmount * 100), lastSyncedAt: new Date(), lastError: null }));
     // Media is deliberately not downloaded until the Icecat contract's permitted image URL is configured.
     await this.log('INFO', 'import', `${item.sku} importé comme brouillon (produit et variante désactivés).`);
     return true;
@@ -45,8 +48,8 @@ export class SupplierManagerService implements OnModuleInit {
       const variant = await this.variants.findOne(ctx, variantId as any); if (!variant) throw new Error('Variante Vendure introuvable');
       // A sync never enables/disables or publishes an item: only commercial values are refreshed.
       const record = await this.connection.getRepository(SupplierImportRecord).findOneByOrFail({ supplier: 'TD_SYNNEX', supplierSku });
-      await this.variants.update(ctx, [{ id: variantId as any, stockOnHand: Math.max(0, item.stock ?? 0), price: this.calculateSalePrice(item.priceHt, { marginPercent: record.marginPercent / 100, fixedAmount: record.fixedAmount / 100 }) }]);
-      await this.connection.getRepository(SupplierImportRecord).update({ supplier: 'TD_SYNNEX', supplierSku }, { lastPurchasePrice: Math.round((item.priceHt ?? 0) * 100), lastStock: item.stock ?? 0, lastSyncedAt: new Date(), lastError: null });
+      if (item.stock !== undefined || item.priceHt !== undefined) await this.variants.update(ctx, [{ id: variantId as any, ...(item.stock === undefined ? {} : { stockOnHand: item.stock }), ...(item.priceHt === undefined ? {} : { price: this.calculateSalePrice(item.priceHt, { marginPercent: record.marginPercent / 100, fixedAmount: record.fixedAmount / 100 }) }) }]);
+      await this.connection.getRepository(SupplierImportRecord).update({ supplier: 'TD_SYNNEX', supplierSku }, { lastPurchasePrice: item.priceHt === undefined ? null : Math.round(item.priceHt * 100), lastStock: item.stock ?? null, lastSyncedAt: new Date(), lastError: null });
       await this.log('INFO', 'sync', `${supplierSku}: stock synchronisé.`);
     } catch (e) { const message = e instanceof Error ? e.message : 'erreur inconnue'; await this.connection.getRepository(SupplierImportRecord).update({ supplier: 'TD_SYNNEX', supplierSku }, { lastError: message }); await this.log('ERROR', 'sync', `${supplierSku}: ${message}`); throw e; }
   }
