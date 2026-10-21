@@ -43,6 +43,7 @@ import { LfinfoSubscriptionsPlugin } from './plugins/lfinfo-subscriptions/lfinfo
 import { subscriptionReminderHandler } from './plugins/lfinfo-subscriptions/email/subscription-reminder.handler';
 import { subscriptionStartedHandler } from './plugins/lfinfo-subscriptions/email/subscription-started.handler';
 import { mollieRecurringPaymentHandler } from './plugins/lfinfo-subscriptions/mollie-recurring.handler';
+import { LfinfoSupplierManagerPlugin } from './plugins/lfinfo-supplier-manager/lfinfo-supplier-manager.plugin';
 
 import {
   InvoicePlugin,
@@ -157,6 +158,7 @@ handlers: [
 	LfinfoSubscriptionsPlugin,
 	LfinfoInvoicesPlugin,
 	LfinfoNumberingPlugin,
+	LfinfoSupplierManagerPlugin,
 InvoicePlugin.init({
   vendureHost: 'https://adminshop.lfinfo.be',
 
